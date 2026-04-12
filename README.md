@@ -9,9 +9,3 @@ conda activate fvab-quantum
 ## VS Code
 - Select Interpreter: `fvab-quantum`
 - Per notebook: seleziona kernel `fvab-quantum`
-
-## Run
-Esempi:
-```bash
-python -m src.train
-```
