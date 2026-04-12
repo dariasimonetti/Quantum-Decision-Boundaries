@@ -1,0 +1,17 @@
+name: fvab-quantum
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pytorch
+  - pytorch-cuda=12.1
+  - numpy
+  - ipykernel
+  - seaborn
+  - jupyter
+  - matplotlib
+  - scikit-learn
+  - pandas
+  - qiskit
+  - qiskit-aer
+prefix: C:\Users\simon\miniforge3\envs\fvab-quantum
