@@ -18,6 +18,7 @@ Thumbs.db
 .env
 
 # Data & outputs (adatta)
-data/
+dataset/
+extractedFeatures/
 outputs/
 wandb/
