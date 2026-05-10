@@ -19,6 +19,8 @@ Thumbs.db
 
 # Data & outputs (adatta)
 dataset/
+compressedFeatures/
 extractedFeatures/
+artifacts/
 outputs/
 wandb/
