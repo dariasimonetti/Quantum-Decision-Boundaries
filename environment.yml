@@ -1,9 +1,14 @@
 name: fvab-quantum
 channels:
+  - pytorch
+  - nvidia
   - conda-forge
+  - defaults
 dependencies:
   - python=3.11
   - pytorch
+  - torchvision
+  - torchaudio
   - pytorch-cuda=12.1
   - numpy
   - ipykernel
@@ -14,4 +19,7 @@ dependencies:
   - pandas
   - qiskit
   - qiskit-aer
-prefix: C:\Users\simon\miniforge3\envs\fvab-quantum
+  - torchmetrics
+  - pip
+  - pip:
+    - medmnist
