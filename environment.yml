@@ -23,3 +23,5 @@ dependencies:
   - pip
   - pip:
     - medmnist
+    - qiskit-machine-learning
+    - qiskit-algorithms
