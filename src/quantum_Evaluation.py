@@ -5,6 +5,7 @@ import numpy as np
 import math
 from sklearn.metrics import roc_auc_score, f1_score, balanced_accuracy_score
 from torchmetrics.classification import MulticlassCalibrationError
+import matplotlib.pyplot as plt 
 
 def evaluate_predictions(model, X, y):
     """
@@ -17,7 +18,7 @@ def evaluate_predictions(model, X, y):
         probs  = torch.softmax(logits, dim=1).cpu().numpy()
         preds  = probs.argmax(axis=1)
     
-    # Conversione sicura del target in numpy (funziona sia con Tensori che con Array)
+    # Conversione sicura del target in numpy
     y_np = y.cpu().numpy() if hasattr(y, 'cpu') else np.asarray(y)
     
     # Rilevamento dinamico del numero di classi
@@ -43,16 +44,13 @@ def evaluate_predictions(model, X, y):
 def analyze_vqc_angles(model, d=None, n_qubits=None):
     """
     Estrae e analizza statisticamente i pesi/angoli del circuito quantistico.
-    Funziona con qualsiasi modello PyTorch o direttamente con array di pesi.
-    L'analisi per blocchi viene eseguita solo se vengono passati 'd' e 'n_qubits'.
     """
-    # Estrazione flessibile dei pesi del modello
     if hasattr(model, 'q_weights'):
         weights = model.q_weights
     elif hasattr(model, 'parameters') and list(model.parameters()):
         weights = next(model.parameters())
     else:
-        weights = model  # Assume che sia già un array o un tensore di pesi
+        weights = model  
         
     optimal_angles = weights.detach().cpu().numpy() if hasattr(weights, 'detach') else np.asarray(weights)
 
@@ -62,7 +60,6 @@ def analyze_vqc_angles(model, d=None, n_qubits=None):
     print(f"Media degli angoli: {optimal_angles.mean():.4f}")
     print(f"Deviazione Standard: {optimal_angles.std():.4f}")
 
-    # Analisi opzionale della ripartizione in blocchi (se applicabile all'ansatz)
     if d is not None and n_qubits is not None:
         n_blocks_exp = math.ceil(d / n_qubits)
         if n_blocks_exp > 0 and len(optimal_angles) >= n_blocks_exp:
@@ -83,42 +80,78 @@ def analyze_vqc_angles(model, d=None, n_qubits=None):
     return optimal_angles
 
 
+def save_circuit_image(model, tag, seed, base_path='../artifacts', scale=0.7, dpi=150):
+    """
+    Salva l'immagine del circuito nella sotto-cartella dedicata 'circuits'.
+    """
+    if not hasattr(model, 'quantum_circuit'):
+        print(f"[ATTENZIONE] Impossibile generare l'immagine: 'quantum_circuit' non trovato.")
+        return
+
+    target_dir = os.path.join(base_path, 'circuits')
+    os.makedirs(target_dir, exist_ok=True)
+    
+    circuit_plot_path = os.path.join(target_dir, f'vqc_circuit_{tag}_seed_{seed}.png')
+
+    print(f"\nGenerazione del grafico del circuito per {tag}...")
+    try:
+        circuit_img = model.quantum_circuit.draw(output='mpl', scale=scale)
+        circuit_img.savefig(circuit_plot_path, bbox_inches='tight', dpi=dpi)
+        print(f" - Immagine circuito salvata in: {os.path.join('circuits', os.path.basename(circuit_plot_path))}")
+        plt.close(circuit_img)
+    except Exception as e_circ:
+        print(f"[ATTENZIONE] Errore nel disegno MPL: {e_circ}. Fallback testo ASCII.")
+        print(model.quantum_circuit.draw(output='text'))
+
+
 def save_model_and_artifacts(
     model, val_metrics, test_metrics, val_data, test_data, history,
-    tag, seed, base_path='../artifacts', metadata=None
+    tag, seed, base_path='../artifacts', metadata=None, **kwargs
 ):
     """
-    Salva i pesi del modello, le metriche in formato JSON e le predizioni in formato NPZ.
-    I metadati aggiuntivi (es. tipo di ansatz, readout) vengono passati dinamicamente.
+    Salva i pesi, le metriche (JSON), le predizioni (NPZ) e l'immagine del circuito.
     """
-    os.makedirs(base_path, exist_ok=True)
+    # 1. Definizione e creazione REALE dei percorsi specifici
+    weights_dir = os.path.join(base_path, 'weights')
+    metrics_dir = os.path.join(base_path, 'metrics')
+    pred_dir    = os.path.join(base_path, 'predictions')
+
+    os.makedirs(weights_dir, exist_ok=True)
+    os.makedirs(metrics_dir, exist_ok=True)
+    os.makedirs(pred_dir,    exist_ok=True)
+    
+    save_circuit_image(model=model, tag=tag, seed=seed, base_path=base_path)
     
     y_val, val_preds, val_probs = val_data
     y_test, test_preds, test_probs = test_data
 
-    # 1. Salvataggio dello Stato o dei Pesi del Modello
-    model_path = os.path.join(base_path, f'vqc_weights_{tag}_seed_{seed}.pt')
+    # 2. Salvataggio Pesi (.pt)
+    model_path = os.path.join(weights_dir, f'vqc_weights_{tag}_seed_{seed}.pt')
     if hasattr(model, 'state_dict'):
         torch.save(model.state_dict(), model_path)
     else:
         torch.save(model, model_path)
 
-    # 2. Generazione dinamica dei Metadati e salvataggio JSON
-    json_path = os.path.join(base_path, f'vqc_metrics_{tag}_seed_{seed}.json')
+    # 3. Salvataggio Metriche e Metadati (.json)
+    json_path = os.path.join(metrics_dir, f'vqc_metrics_{tag}_seed_{seed}.json')
+    
     artifact_meta = {
         'seed': seed,
+        'tag': tag,
         'val_metrics': val_metrics, 
         'test_metrics': test_metrics,
     }
-    # Integra i metadati dell'esperimento se forniti dal notebook
+    
     if metadata and isinstance(metadata, dict):
         artifact_meta.update(metadata)
+        
+    artifact_meta.update(kwargs)
 
     with open(json_path, 'w') as f: 
         json.dump(artifact_meta, f, indent=2)
 
-    # 3. Salvataggio Predizioni e Storico Curve di Training (NPZ)
-    npz_path = os.path.join(base_path, f'vqc_predictions_{tag}_seed_{seed}.npz')
+    # 4. Salvataggio Predizioni e Loss (.npz)
+    npz_path = os.path.join(pred_dir, f'vqc_predictions_{tag}_seed_{seed}.npz')
     y_val_np = y_val.cpu().numpy() if hasattr(y_val, 'cpu') else np.asarray(y_val)
     y_test_np = y_test.cpu().numpy() if hasattr(y_test, 'cpu') else np.asarray(y_test)
 
@@ -132,7 +165,7 @@ def save_model_and_artifacts(
 
     np.savez(npz_path, **npz_payload)
     
-    print(f"Salvataggio completato in: {base_path}")
-    print(f" - Pesi modello: {os.path.basename(model_path)}")
-    print(f" - Metriche: {os.path.basename(json_path)}")
-    print(f" - Predizioni: {os.path.basename(npz_path)}")
+    print(f"Salvataggio completato con successo in: {base_path}")
+    print(f" - Pesi modello:  {os.path.join('weights', os.path.basename(model_path))}")
+    print(f" - Metriche JSON: {os.path.join('metrics', os.path.basename(json_path))}")
+    print(f" - Predizioni:    {os.path.join('predictions', os.path.basename(npz_path))}")
