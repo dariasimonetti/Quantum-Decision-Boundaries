@@ -7,11 +7,11 @@ Quantum computing is a new technology that is slowly entering our daily lives, n
 The machine learning approach, that's been stagnat for a while now, is finding new life with the ignition of the Quantum spark.
 This project focuses on benchmarking the differences between the Quantum Machine Learning approach and the Classical Machine Learning approach by comparing them using a fixed pipeline.
 ## Needed
-What's needed for the pipeline:
+What's needed for the pipeline (It is possible to run the environment script to download and install all the dependencies) :
 - Python
 - PyTorch
 - Jupyter
-It is possible to run the setup script to download and install all the dependencies.
+
 ## Setup
 1) Run the feature_extractor.ipynb
 2) Run the PCASweep.ipynb
