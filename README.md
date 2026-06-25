@@ -15,4 +15,4 @@ It is possible to run the setup script to download and install all the dependenc
 ## Setup
 1) Run the feature_extractor.ipynb
 2) Run the PCASweep.ipynb
-3) Each Ansatz is labeled in a specific way (C1, C2, C3), feel free to run any (C1 RealAmplitudes, EfficientSU2, Ladder)
+3) Each Ansatz is labeled in a specific way (C1, C2, C3), feel free to run any (1: RealAmplitudes, 2: EfficientSU2, 3: Ladder)
